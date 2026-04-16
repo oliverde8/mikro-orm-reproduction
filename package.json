@@ -11,10 +11,12 @@
   "author": "Martin Adamek",
   "license": "MIT",
   "dependencies": {
-    "@mikro-orm/core": "next",
-    "@mikro-orm/decorators": "next",
-    "@mikro-orm/sqlite": "next",
-    "reflect-metadata": "^0.2.2"
+    "@mikro-orm/core": "^7.0.11",
+    "@mikro-orm/decorators": "^7.0.11",
+    "@mikro-orm/sqlite": "^7.0.11",
+    "@swc/core": "^1.15.26",
+    "reflect-metadata": "^0.2.2",
+    "unplugin-swc": "^1.5.9"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

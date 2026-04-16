@@ -1,24 +1,31 @@
 import 'reflect-metadata';
-import { Entity, PrimaryKey, Property, ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+import { Entity, ManyToOne, PrimaryKey, Property, ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM } from '@mikro-orm/sqlite';
+import { Ref, ref } from '@mikro-orm/core';
 
 @Entity()
-class User {
+class Building {
+  @PrimaryKey() id!: number;
+  @Property() reference!: number;
+  @Property() name!: string;
+}
 
-  @PrimaryKey()
-  id!: number;
+@Entity()
+class Unit {
+  @PrimaryKey() id!: number;
+  @Property() reference!: number;
 
-  @Property()
-  name: string;
+  @ManyToOne(() => Building, { ref: true })
+  building!: Ref<Building>;
 
-  @Property({ unique: true })
-  email: string;
-
-  constructor(name: string, email: string) {
-    this.name = name;
-    this.email = email;
+  @Property({ persist: false })
+  get buildingReference(): number {
+    // This is part of the issue, removing this condition will "fix" the issue
+    if (!this.building?.isInitialized()) {
+      return 0;
+    }
+    return this.building.getEntity().reference;
   }
-
 }
 
 let orm: MikroORM;
@@ -26,29 +33,47 @@ let orm: MikroORM;
 beforeAll(async () => {
   orm = await MikroORM.init({
     dbName: ':memory:',
-    entities: [User],
+    entities: [Building, Unit],
     metadataProvider: ReflectMetadataProvider,
-    debug: ['query', 'query-params'],
-    allowGlobalContext: true, // only for testing
+    allowGlobalContext: true,
   });
   await orm.schema.refresh();
-});
-
-afterAll(async () => {
-  await orm.close(true);
-});
-
-test('basic CRUD example', async () => {
-  orm.em.create(User, { name: 'Foo', email: 'foo' });
+  orm.em.create(Building, { id: 1, reference: 900000, name: 'Test Building' });
   await orm.em.flush();
   orm.em.clear();
+});
 
-  const user = await orm.em.findOneOrFail(User, { email: 'foo' });
-  expect(user.name).toBe('Foo');
-  user.name = 'Bar';
-  orm.em.remove(user);
-  await orm.em.flush();
+afterAll(() => orm.close(true));
 
-  const count = await orm.em.count(User, { email: 'foo' });
-  expect(count).toBe(0);
+// ---------------------------------------------------------------------------
+// THE BUG
+//
+// ---------------------------------------------------------------------------
+
+test('em.create() with plain-object FK value should not throw', () => {
+  orm.em.clear();
+  expect(() => {
+    orm.em.create(Unit, { id: 1, reference: 42, building: { id: 1 } }, { persist: false, partial: true });
+  }).not.toThrow();
+});
+
+// ---------------------------------------------------------------------------
+// THE WORKAROUND
+// ---------------------------------------------------------------------------
+
+test('em.create() with ref() FK value should not throw', () => {
+  orm.em.clear();
+  expect(() => {
+    orm.em.create(Unit, { id: 3, reference: 42, building: ref(Building, 1) }, { persist: false, partial: true });
+  }).not.toThrow();
+});
+
+test('em.upsert() with ref() FK value should not throw', async () => {
+  orm.em.clear();
+  await expect(orm.em.upsert(Unit, { id: 4, reference: 44, building: ref(Building, 1) })).resolves.not.toThrow();
+});
+
+test('em.upsertMany() with ref() FK values should not throw', async () => {
+  orm.em.clear();
+  await expect(orm.em.upsertMany(Unit, [{ id: 5, reference: 46, building: ref(Building, 1) }])).resolves.not.toThrow();
 });
