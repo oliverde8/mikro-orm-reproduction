@@ -1,0 +1,14 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: mikro-orm-snapshot-repro-mysql
+    ports:
+      - "3399:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: repro
+      MYSQL_DATABASE: repro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prepro"]
+      interval: 1s
+      timeout: 3s
+      retries: 30

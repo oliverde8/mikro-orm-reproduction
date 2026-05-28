@@ -1,0 +1,32 @@
+{
+  "name": "mikro-orm-snapshot-repro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p .",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v",
+    "mikro": "mikro-orm",
+    "repro": "node repro.js"
+  },
+  "dependencies": {
+    "@mikro-orm/cli": "7.0.17",
+    "@mikro-orm/core": "7.0.17",
+    "@mikro-orm/decorators": "7.0.17",
+    "@mikro-orm/migrations": "7.0.17",
+    "@mikro-orm/mysql": "7.0.17",
+    "@mikro-orm/reflection": "7.0.17",
+    "mysql2": "^3.11.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  },
+  "mikro-orm": {
+    "config": [
+      "./dist/mikro-orm.config.js"
+    ],
+    "preferTs": false
+  }
+}
